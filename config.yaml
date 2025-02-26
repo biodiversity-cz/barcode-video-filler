@@ -1,0 +1,5 @@
+camera_id: 1  # facultative 
+regex: "CODE-(?<numericPart>\\d+)"  # RegEx for barcode parsing
+input_position: [500, 300]  # coords of input field
+window_title: "Capture"
+
