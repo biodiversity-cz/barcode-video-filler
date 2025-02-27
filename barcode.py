@@ -39,7 +39,7 @@ class BarcodeScannerApp(QWidget):
 
         self.setLayout(layout)
 
-        self.timpythoner = QTimer()
+        self.timer = QTimer()
         self.timer.timeout.connect(self.capture_frame)
 
     def toggle_scanning(self):
@@ -87,11 +87,11 @@ class BarcodeScannerApp(QWidget):
         barcode = self.scan_barcode(frame)
         if barcode and barcode != self.last_barcode:
             self.last_barcode = barcode
-            play_sound(self.config["sound"]["success"])
+            self.play_sound(self.config["sound"]["success"])
             self.process_barcode(barcode)
 
         elif barcode is None and self.last_barcode is not None:
-            play_sound(self.config["sound"]["lost"])
+            self.play_sound(self.config["sound"]["lost"])
             self.last_barcode = None
 
         self.display_frame(frame)
@@ -117,7 +117,7 @@ class BarcodeScannerApp(QWidget):
         match = re.search(regex, barcode)
         return match.group("numericPart") if match else None
 
-    def play_sound(sound_file):
+    def play_sound(self, sound_file):
         wave_obj = sa.WaveObject.from_wave_file(sound_file)
         wave_obj.play()
 

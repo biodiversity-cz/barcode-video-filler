@@ -1,8 +1,8 @@
 camera_id: 1  # facultative 
 regex: "CODE-(?<numericPart>\\d+)"  # RegEx for barcode parsing
 input_position: [500, 300]  # coords of input field
-window_title: "Capture"
+window_title: "Notepad"
 sound:
-  success: "sound/ok.mp3"
-  lost: "sound/lost.mp3"
+  success: "./sound/ok.wav"
+  lost: "./sound/lost.wav"
 
