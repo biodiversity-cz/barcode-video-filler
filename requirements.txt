@@ -1,0 +1,7 @@
+opencv-python
+pyzbar
+pyautogui
+pygetwindow
+pyyaml
+simpleaudio
+PyQt6
