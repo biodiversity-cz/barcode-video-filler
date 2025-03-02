@@ -5,7 +5,9 @@ import re
 import pyautogui
 import pygetwindow as gw
 from pyzbar.pyzbar import decode
-from playsound import playsound
+import simpleaudio as sa
+import pygame
+import win32gui
 
 def load_config():
     with open("config.yaml", "r", encoding="utf-8") as file:
@@ -27,7 +29,11 @@ def scan_barcode(frame):
     return None
 
 def parse_barcode(barcode, regex):
-    match = re.search(regex, barcode)
+    match = re.search(regex, barcode, re.IGNORECASE)
+    if match:
+        print("matched ID: " + match.group("numericPart")) 
+    else:
+        print("No match on: " + barcode)
     return match.group("numericPart") if match else None
 
 def find_window(target):
@@ -35,21 +41,39 @@ def find_window(target):
         if target.lower() in window.title.lower():
             return window
     return None
+	
+def activate_window(window):
+    try:
+        win32gui.ShowWindow(window._hWnd, 5)  
+        win32gui.SetForegroundWindow(window._hWnd)  
+        time.sleep(0.2)
+    except Exception as e:
+        print(f"Chyba při aktivaci okna: {e}")
+
+def play_sound(sound_file):
+    sound = pygame.mixer.Sound(sound_file)
+    sound.play()
 
 def process_barcode(barcode, config):
-    parsed_data = parse_barcode(barcode, config["regex"])
-    if parsed_data:
+    numeric_part = parse_barcode(barcode, config["regex"])
+    if numeric_part:
         window = find_window(config["window_title"])
+        timestamp = int(time.time())
+        filename = config["filename_template"].format(numeric_part=numeric_part.zfill(config["digits"]), timestamp=timestamp)
         if window:
+            activate_window(window)
             x, y = config["input_position"]
             pyautogui.click(x, y)
             pyautogui.hotkey("ctrl", "a")
             pyautogui.press("backspace")
-            pyautogui.write(parsed_data)
+            pyautogui.write(filename)
+            play_sound(config["sound"]["success"])	
+
 
 def main():
     config = load_config()
     available_cameras = find_cameras()
+    pygame.mixer.init()
 
     if not available_cameras:
         print("No suitable cameras found.")
@@ -66,18 +90,20 @@ def main():
     while True:
         ret, frame = cap.read()
         if not ret:
+            print("Failed to grab frame. Retrying...")
             continue
 
         barcode = scan_barcode(frame)
         if barcode and barcode != last_barcode:
             last_barcode = barcode
             print(f"New barcode detected: {barcode}")
-            playsound(config["sound"]["success"])
             process_barcode(barcode, config)
         elif barcode is None and last_barcode is not None:
             print("Barcode lost.")
-            playsound(config["sound"]["lost"])
+            play_sound(config["sound"]["lost"])
             last_barcode = None
+			
+        time.sleep(0.5)
 
     cap.release()
     cv2.destroyAllWindows()

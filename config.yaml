@@ -1,7 +1,9 @@
-camera_id: 1  # facultative 
-regex: "CODE-(?<numericPart>\\d+)"  # RegEx for barcode parsing
+camera_id: 0  # facultative 
+regex: "^PRC[\\s\\--_](?P<numericPart>\\d+)$"  # RegEx for barcode parsing
+digits: 7
+filename_template: "PRC_{numeric_part}_{timestamp}_robot" # must include {numeric_part} and {timestamp} string
 input_position: [500, 300]  # coords of input field
-window_title: "Notepad"
+window_title: "Notepad 2"
 sound:
   success: "./sound/ok.wav"
   lost: "./sound/lost.wav"
