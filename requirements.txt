@@ -3,7 +3,5 @@ pyzbar
 pyautogui
 pygetwindow
 pyyaml
-simpleaudio
 PyQt6
 pygame
-pywin32	

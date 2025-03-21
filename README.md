@@ -11,7 +11,17 @@ Using pygetwindow that supports only Windows windows. At this moment no Ubuntu b
 Only no_gui.py variant works.
 
 ```shell
+sudo apt install libzbar-dev
+python3 -m venv scheda
+source scheda/bin/activate
+
 pip install -r requirements.txt
+
+#check camera ID
+v4l2-ctl --list-devices
+# use integer from name like /dev/videoX
+# setup in config.yaml
+
 python no_gui.py
 ```
 

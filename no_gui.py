@@ -2,12 +2,8 @@ import cv2
 import yaml
 import time
 import re
-import pyautogui
-import pygetwindow as gw
-from pyzbar.pyzbar import decode
-import simpleaudio as sa
+from pyzbar.pyzbar import decode 
 import pygame
-import win32gui
 
 def load_config():
     with open("config.yaml", "r", encoding="utf-8") as file:
@@ -36,20 +32,6 @@ def parse_barcode(barcode, regex):
         print("No match on: " + barcode)
     return match.group("numericPart") if match else None
 
-def find_window(target):
-    for window in gw.getWindowsWithTitle(target):
-        if target.lower() in window.title.lower():
-            return window
-    return None
-	
-def activate_window(window):
-    try:
-        win32gui.ShowWindow(window._hWnd, 5)  
-        win32gui.SetForegroundWindow(window._hWnd)  
-        time.sleep(0.2)
-    except Exception as e:
-        print(f"Chyba při aktivaci okna: {e}")
-
 def play_sound(sound_file):
     sound = pygame.mixer.Sound(sound_file)
     sound.play()
@@ -57,17 +39,9 @@ def play_sound(sound_file):
 def process_barcode(barcode, config):
     numeric_part = parse_barcode(barcode, config["regex"])
     if numeric_part:
-        window = find_window(config["window_title"])
         timestamp = int(time.time())
         filename = config["filename_template"].format(numeric_part=numeric_part.zfill(config["digits"]), timestamp=timestamp)
-        if window:
-            activate_window(window)
-            x, y = config["input_position"]
-            pyautogui.click(x, y)
-            pyautogui.hotkey("ctrl", "a")
-            pyautogui.press("backspace")
-            pyautogui.write(filename)
-            play_sound(config["sound"]["success"])	
+        play_sound(config["sound"]["success"])	
 
 
 def main():
