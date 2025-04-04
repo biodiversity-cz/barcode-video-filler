@@ -12,19 +12,6 @@ def load_config():
     with open("config.yaml", "r", encoding="utf-8") as file:
         return yaml.safe_load(file)
 
-def find_cameras():
-    import os
-    available = []
-    for i in range(15):
-        path = f"/dev/video{i}"
-        if os.path.exists(path):
-            cap = cv2.VideoCapture(path)
-            if cap.isOpened():
-                available.append(path)
-                cap.release()
-    return available
-
-
 def scan_barcode(frame):
     barcodes = decode(frame)
     for barcode in barcodes:
@@ -90,17 +77,9 @@ def process_barcode(barcode, config, liveview):
 
 def main():
     config = load_config()
-    available_cameras = find_cameras()
     pygame.mixer.init()
 
-    if not available_cameras:
-        print("No suitable cameras found.")
-        return
-
-    cam_id = config.get("camera_id", available_cameras[0])
-    if cam_id not in available_cameras:
-        print(f"Configured camera {cam_id} is not available, using {available_cameras[0]} instead.")
-        cam_id = available_cameras[0]
+    cam_id = config.get("camera_id", "/dev/video10")
 
     cap = cv2.VideoCapture(cam_id)
     last_barcode = None
@@ -124,7 +103,7 @@ def main():
                 play_sound(config["sound"]["lost"])
                 last_barcode = None
 
-            time.sleep(0.5)
+            time.sleep(0.2)
         finally:
             liveview.stop()
             cap.release()
