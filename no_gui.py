@@ -2,6 +2,7 @@ import cv2
 import yaml
 import time
 import re
+import os
 from pyzbar.pyzbar import decode 
 import pygame
 
@@ -10,13 +11,17 @@ def load_config():
         return yaml.safe_load(file)
 
 def find_cameras():
-    available_cameras = []
-    for cam_id in range(5):
-        cap = cv2.VideoCapture(cam_id)
-        if cap.isOpened():
-            available_cameras.append(cam_id)
-            cap.release()
-    return available_cameras
+    import os
+    available = []
+    for i in range(15):
+        path = f"/dev/video{i}"
+        if os.path.exists(path):
+            cap = cv2.VideoCapture(path)
+            if cap.isOpened():
+                available.append(path)
+                cap.release()
+    return available
+
 
 def scan_barcode(frame):
     barcodes = decode(frame)

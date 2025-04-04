@@ -19,6 +19,8 @@ pip install -r requirements.txt
 
 #check camera ID
 v4l2-ctl --list-devices
+#nebo 
+ffplay /dev/video4
 # use integer from name like /dev/videoX
 # setup in config.yaml
 
