@@ -4,7 +4,7 @@ The very first attempt was to create a robot that independently detect barcode, 
 **Stack:** Canon 600D + Ubuntu PC. Canon runs in LiveView, when barcode detected, beep and take a photo running as a loop.
 
 ## preliminary
-Visit sound bank like https://pixabay.com/cs/sound-effects and search for "success" and "error" e.g. Two sound file should be stored in the subfolder "./sound". The script expects also ./config.yaml in the current directory to set up configuration.
+Visit sound bank like https://pixabay.com/cs/sound-effects and search for "success", "wrong" and "error" e.g. Two sound file should be stored in the subfolder "./sound". The script expects also ./config.yaml in the current directory to set up configuration.
 
 ## configure Canon as a source of barcode as well as a capture device
 

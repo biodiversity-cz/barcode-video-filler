@@ -5,4 +5,5 @@ filename_template: "PRC_{numeric_part}_{timestamp}_robot" # must include {numeri
 sound:
   success: "./sound/ok.wav"
   lost: "./sound/lost.wav"
+  wrong: "./sound/wrong.wav"
 
