@@ -12,12 +12,22 @@ Visit sound bank like https://pixabay.com/cs/sound-effects and search for "succe
 #check cameras' list and setup in config.yaml
 v4l2-ctl --list-devices
 #play image from some..
-ffplay /dev/video4
+ffplay /dev/video10
 # to list controls of specific camera
-v4l2-ctl -d /dev/video4 -l
+v4l2-ctl -d /dev/video10 -l
+
+# co zůstalo viset
+ps aux | grep gphoto
+ps aux | grep ffmpeg
+
+# zabít
+killall gphoto2
+killall ffmpeg
+
+
 ```
 1) Canon 600D does not support UVC(https://en.wikipedia.org/wiki/USB_video_device_class), we need more tools
-```sudo apt install v4l2loopback-dkms gphoto2```
+```sudo apt install v4l2loopback-dkms v4l-utils gphoto2```
 
 2) make virtual camera slot: ```sudo modprobe v4l2loopback video_nr=10 card_label="CanonDSLR" exclusive_caps=1``` (/dev/video10 is now available, yet empty)
 
@@ -35,6 +45,14 @@ sudo nano /etc/udev/rules.d/90-libgphoto2.rules
 ```  
 
 4) unplug&plugin Canon and check ```gphoto2 --auto-detect```
+
+5) in case you want to remove video10:
+```shell
+lsof /dev/video10
+sudo modprobe -r v4l2loopback
+ls /dev/video*
+
+```
 
 ## Run
 

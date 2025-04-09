@@ -30,53 +30,45 @@ def play_sound(sound_file):
     sound = pygame.mixer.Sound(sound_file)
     sound.play()
 
-def take_photo(filename="photo.jpg", iso="1", aperture="15", shutter="1"):
-    print("Taking photo...")
-    subprocess.run(["gphoto2", "--set-config", "autofocus=1"])
-    time.sleep(1)  # počkej na zaostření
-    subprocess.run(["gphoto2", "--set-config", f"iso={iso}"])
-    subprocess.run(["gphoto2", "--set-config", f"aperture={aperture}"])
-    # subprocess.run(["gphoto2", "--set-config", f"shutterspeed={shutter}"])
-    subprocess.run(["gphoto2", "--capture-image-and-download", "--filename", "output/" + filename])
+def start_liveview():
+    cmd = [
+        "bash", "-c",
+        "gphoto2 --stdout --capture-movie | ffmpeg -i - -vcodec rawvideo -pix_fmt yuv420p -f v4l2 /dev/video10"
+    ]
+    proc = subprocess.Popen(
+        cmd,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        preexec_fn=lambda: signal.signal(signal.SIGINT, signal.SIG_IGN)
+    )
+    print(f"▶️ LiveView PID: {proc.pid}")
+    return proc
 
-class LiveViewController:
-    def __init__(self, device="/dev/video10"):
-        self.device = device
-        self.process = None
-
-    def start(self):
-        if self.process is None or self.process.poll() is not None:
-            cmd = [
-                "bash", "-c",
-                f"gphoto2 --stdout --capture-movie | "
-                f"ffmpeg -i - -vcodec rawvideo -pix_fmt yuv420p -f v4l2 {self.device}"
-            ]
-            self.process = subprocess.Popen(cmd, preexec_fn=os.setsid)
-            time.sleep(3)
-            print("LiveView started.")
-
-    def stop(self):
-        if self.process : #and self.process.poll() is None:
-            os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-            self.process.wait()
-            print("LiveView stopped.")
-            time.sleep(2)
-
-    def restart(self):
-        self.stop()
-        self.start()
-
-def process_barcode(barcode, config, liveview):
-    numeric_part = parse_barcode(barcode, config["regex"])
-    if numeric_part:
-        filename = f"{numeric_part}.jpg"
-        print(f"Taking photo with filename: {filename}")
-        play_sound(config["sound"]["success"])
-        # liveview.stop()
-        # take_photo(filename)
-        # liveview.start()
+def stop_liveview(proc):
+    if proc.poll() is None:
+        proc.send_signal(signal.SIGINT)
+        try:
+            proc.wait(timeout=5)
+            print("✅ LiveView úspěšně ukončen.")
+        except subprocess.TimeoutExpired:
+#             print("⚠️ Nešlo ukončit, zabíjím proces...")
+            proc.kill()
+            proc.wait()
+            subprocess.run(["killall", "gphoto2"]) # i když znám id procesu tak to stejně nestačí, musím natvrdo
+            print("☠️ LiveView ukončen.")
     else:
-        play_sound(config["sound"]["wrong"])
+        print("ℹ️ LiveView byl ukončen.")
+
+def take_photo(filename="photo.jpg", iso="1", aperture="15", shutter="1"):
+    try:
+        # subprocess.run(["gphoto2", "--set-config", "autofocus=0"])
+        # time.sleep(1)  # počkej na zaostření
+        subprocess.run(["gphoto2", "--set-config", f"iso={iso}"])
+        subprocess.run(["gphoto2", "--set-config", f"aperture={aperture}"])
+        subprocess.run(["gphoto2", "--capture-image-and-download", "--filename", "output/" + filename])
+        print("📸 Fotka pořízena.")
+    except subprocess.CalledProcessError as e:
+        print("❌ Chyba při focení:", e)
 
 
 
@@ -85,39 +77,49 @@ def main():
     pygame.mixer.init()
 
     cam_id = config.get("camera_id", "/dev/video10")
-
-    liveview = LiveViewController()
-    print("Starting live view ofr the first time...")
-    liveview.start()
-    time.sleep(2)
-    cap = cv2.VideoCapture(cam_id)
     last_barcode = None
-    lost_barcode = False
+    live_proc = None
+    cap = None
 
-    try:
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                print("Failed to grab frame. Retrying...")
-                continue
+    while True:
+        live_proc = None
+        try:
+            live_proc = start_liveview()
+            time.sleep(3)
+            cap = cv2.VideoCapture(cam_id, cv2.CAP_V4L2)
+            if not cap.isOpened():
+                print("Error opening video")
+            print("CV started")
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    print("Failed to grab frame. Retrying...")
+                    continue
 
-            barcode = scan_barcode(frame)
-            if barcode and barcode != last_barcode:
-                last_barcode = barcode
-                print(f"New barcode detected: {barcode}")
-                process_barcode(barcode, config, liveview)
-                lost_barcode = True
-            elif barcode is None and lost_barcode and last_barcode is not None:
-                print("Barcode lost.")
-                time.sleep(0.2)
-                # play_sound(config["sound"]["lost"])
-                lost_barcode = False
-
-            time.sleep(0.3)
-    finally:
-        liveview.stop()
-        cap.release()
-        cv2.destroyAllWindows()
+                barcode = scan_barcode(frame)
+                if barcode and barcode != last_barcode:
+                    last_barcode = barcode
+                    print(f"New barcode detected: {barcode}")
+                    numeric_part = parse_barcode(barcode, config["regex"])
+                    if numeric_part:
+                        filename = f"PRC-{numeric_part}.jpg"
+                        print(f"Let's capture photo with filename: {filename}")
+                        play_sound(config["sound"]["success"])
+                        break;
+                    else:
+                        play_sound(config["sound"]["wrong"])
+            cap.release()
+            stop_liveview(live_proc)
+            time.sleep(1)
+            take_photo(filename)
+        except KeyboardInterrupt:
+             print("🛑 Ukončeno uživatelem.")
+             break
+        finally:
+            if cap:
+                cap.release()
+            if live_proc:
+                stop_liveview(live_proc)
 
 if __name__ == "__main__":
     main()
